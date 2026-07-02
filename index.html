@@ -22,6 +22,12 @@ const $=id=>document.getElementById(id);let audio=null,mode='call',meter=4,curre
 const symbols={q:'♩',e:'♪',h:'𝅗𝅥',qr:'𝄽',er:'𝄾',de:'♪',dq:'♩'};
 const pool={1:[['q'],['e','e'],['q'],['e','e']],2:[['q'],['e','e'],['h'],['qr'],['e','er'],['er','e']],3:[['q'],['e','e'],['de','e'],['dq','e'],['e','q','e'],['e','er'],['er','e'],['qr']]};
 function ctx(){if(!audio)audio=new (window.AudioContext||window.webkitAudioContext)();return audio}
+async function unlockAudio(){
+  const c=ctx();
+  if(c.state==='suspended'){
+    try{await c.resume()}catch(e){console.warn('Audio konnte nicht entsperrt werden:',e)}
+  }
+}
 function noiseBuffer(){const c=ctx(),len=Math.floor(c.sampleRate*.22),b=c.createBuffer(1,len,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;return b}
 function cowbellSound(t=0,accent=false){const c=ctx(),now=c.currentTime+t,out=c.createGain();out.gain.setValueAtTime(0,now);out.gain.linearRampToValueAtTime(accent?.34:.24,now+.003);out.gain.exponentialRampToValueAtTime(.0001,now+.18);out.connect(c.destination);[560,845].forEach((fr,i)=>{const o=c.createOscillator(),f=c.createBiquadFilter();o.type='square';o.frequency.value=fr*(accent?1.04:1);f.type='bandpass';f.frequency.value=fr*1.35;f.Q.value=9;o.connect(f);f.connect(out);o.start(now);o.stop(now+.2)});}
 function clapSound(t=0,accent=false){const c=ctx(),now=c.currentTime+t;[0,.018,.034].forEach((off,i)=>{const src=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter();src.buffer=noiseBuffer();f.type='bandpass';f.frequency.value=accent?1850:1450;f.Q.value=1.1;g.gain.setValueAtTime(0,now+off);g.gain.linearRampToValueAtTime((accent?.28:.20)/(i+1),now+off+.003);g.gain.exponentialRampToValueAtTime(.0001,now+off+.075);src.connect(f);f.connect(g);g.connect(c.destination);src.start(now+off);src.stop(now+off+.09)});}
@@ -88,7 +94,19 @@ function line(x1,y1,x2,y2,c,w){let l=document.createElementNS('http://www.w3.org
 function circle(x,y,r,c){let el=document.createElementNS('http://www.w3.org/2000/svg','circle');el.setAttribute('cx',x);el.setAttribute('cy',y);el.setAttribute('r',r);el.setAttribute('fill',c);notation.append(el)}
 function tie(x1,y1,x2,y2){let p=document.createElementNS('http://www.w3.org/2000/svg','path');let mid=(x1+x2)/2;p.setAttribute('d',`M${x1},${y1} Q${mid},${y1-28} ${x2},${y2}`);p.setAttribute('fill','none');p.setAttribute('stroke','#7cf3ff');p.setAttribute('stroke-width','4');p.setAttribute('stroke-linecap','round');notation.append(p)}
 function text(x,y,s,size,c,anchor='start'){let t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('fill',c);t.setAttribute('font-size',size);t.setAttribute('font-weight','900');t.setAttribute('text-anchor',anchor);t.setAttribute('dominant-baseline','middle');t.textContent=s;notation.append(t)}
-newBtn.onclick=newRhythm;playBtn.onclick=()=>playRhythm(false);repeatBtn.onclick=()=>playRhythm(true);showBtn.onclick=()=>{showSolution(false);setFeedback('Lösung angezeigt',patternName(),'')};tapBtn.onclick=tap;finishBtn.onclick=check;tempo.oninput=()=>tempoText.textContent=tempo.value;document.querySelectorAll('[data-meter]').forEach(b=>b.onclick=()=>{meter=+b.dataset.meter;document.querySelectorAll('[data-meter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');meterDots.innerHTML='';renderNotation(false)});callBtn.onclick=()=>{mode='call';callBtn.classList.add('active');choiceBtn.classList.remove('active');setFeedback('Call & Response','Hören und nachtippen.','')};choiceBtn.onclick=()=>{mode='choice';choiceBtn.classList.add('active');callBtn.classList.remove('active');setFeedback('Auswahlmodus kommt später','Diese Version konzentriert sich auf Call & Response.','')};document.querySelectorAll('[data-sound]').forEach(b=>b.onclick=()=>{instrument=b.dataset.sound;document.querySelectorAll('[data-sound]').forEach(x=>x.classList.remove('active'));b.classList.add('active');setFeedback('Klang geändert',instrument==='clap'?'Clap ist aktiv.':'Cowbell ist aktiv.','');if(current)playRhythm(false)});document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.code==='Space'){e.preventDefault();tap()}if(e.key.toLowerCase()==='n')newRhythm();if(e.key.toLowerCase()==='h')playRhythm(true);if(e.key.toLowerCase()==='l'){showSolution(false);setFeedback('Lösung angezeigt',patternName(),'')}});tempoText.textContent=tempo.value;renderNotation(false);updateRepeat();
+newBtn.onclick=async()=>{await unlockAudio();newRhythm()};
+playBtn.onclick=async()=>{await unlockAudio();playRhythm(false)};
+repeatBtn.onclick=async()=>{await unlockAudio();playRhythm(true)};
+showBtn.onclick=()=>{showSolution(false);setFeedback('Lösung angezeigt',patternName(),'')};
+tapBtn.onclick=async()=>{await unlockAudio();tap()};
+finishBtn.onclick=check;
+tempo.oninput=()=>tempoText.textContent=tempo.value;document.querySelectorAll('[data-meter]').forEach(b=>b.onclick=()=>{meter=+b.dataset.meter;document.querySelectorAll('[data-meter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');meterDots.innerHTML='';renderNotation(false)});callBtn.onclick=()=>{mode='call';callBtn.classList.add('active');choiceBtn.classList.remove('active');setFeedback('Call & Response','Hören und nachtippen.','')};choiceBtn.onclick=()=>{mode='choice';choiceBtn.classList.add('active');callBtn.classList.remove('active');setFeedback('Auswahlmodus kommt später','Diese Version konzentriert sich auf Call & Response.','')};document.querySelectorAll('[data-sound]').forEach(b=>b.onclick=async()=>{await unlockAudio();instrument=b.dataset.sound;document.querySelectorAll('[data-sound]').forEach(x=>x.classList.remove('active'));b.classList.add('active');setFeedback('Klang geändert',instrument==='clap'?'Clap ist aktiv.':'Cowbell ist aktiv.','');if(current)playRhythm(false)});document.addEventListener('keydown',async e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  if(e.code==='Space'){e.preventDefault();await unlockAudio();tap()}
+  if(e.key.toLowerCase()==='n'){await unlockAudio();newRhythm()}
+  if(e.key.toLowerCase()==='h'){await unlockAudio();playRhythm(true)}
+  if(e.key.toLowerCase()==='l'){showSolution(false);setFeedback('Lösung angezeigt',patternName(),'')}
+});tempoText.textContent=tempo.value;renderNotation(false);updateRepeat();
 </script>
 </body>
 </html>
