@@ -96,7 +96,18 @@ function addHistory(name,ok){let r=document.createElement('div');r.className='ro
 function updateRepeat(){repLeft.textContent=repeats;repeatBtn.disabled=!current||repeats<=0}
 function renderNotation(show){notation.innerHTML='';const y=66,top=36,space=10,left=34,right=730;for(let i=0;i<5;i++)line(left,top+i*space,right,top+i*space,'#ffffff35',1);line(left-8,top,left-8,top+4*space,'#ffffff55',2);line(right,top,right,top+4*space,'#ffffff55',2);if(!show){svgText(380,66,'Notation erscheint nach der Lösung',18,'#aeb7df','middle');return}const step=680/meter;for(let b=1;b<meter;b++)line(left+b*step,top,left+b*step,top+4*space,'#ffffff22',1);let positions=current.map(n=>({...n,x:left+28+n.t*step}));drawBeams(positions,y);positions.forEach(n=>drawNote(n,y));}
 function drawNote(n,y){if(isRest(n.v)){drawRest(n,y);return}const headY=n.v==='h'?y-4:y,filled=n.v!=='h';ellipse(n.x,headY,13,9,'#f7f8ff',filled?'#f7f8ff':'none',2,-18);if(n.v==='q'||n.v==='e'||n.v==='de'||n.v==='h'){line(n.x+10,headY,n.x+10,headY-46,'#f7f8ff',3)}if(n.v==='de')circle(n.x+25,headY-2,3.2,'#f7f8ff');}
-function drawRest(n,y){const t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',n.x);t.setAttribute('y',n.v==='qr'?y-2:y-5);t.setAttribute('fill','#cbd5ff');t.setAttribute('font-size',n.v==='qr'?48:44);t.setAttribute('font-weight','400');t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','middle');t.setAttribute('font-family','Bravura, Noto Music, Segoe UI Symbol, Apple Symbols, Arial Unicode MS, sans-serif');t.textContent=n.v==='qr'?'𝄽':'𝄾';notation.append(t)}
+function drawRest(n,y){
+  // Gleiche SVG-Pausen wie im Verlaufsfeld, nur größer für das mittlere Lösungsfenster.
+  const c='#cbd5ff', x=n.x;
+  if(n.v==='qr'){
+    svgPath(`M ${x-8} ${y-30} C ${x+15} ${y-24} ${x-10} ${y-14} ${x+10} ${y-8} C ${x+28} ${y-2} ${x+2} ${y+10} ${x+18} ${y+18}`,c,5.2,'none');
+    svgPath(`M ${x+6} ${y-31} L ${x-12} ${y-13}`,c,5.2,'none');
+  }else{
+    circle(x-4,y-23,5.2,c);
+    svgPath(`M ${x+2} ${y-23} C ${x+20} ${y-17} ${x+15} ${y-1} ${x} ${y+13}`,c,4.4,'none');
+    svgPath(`M ${x+3} ${y-21} L ${x+18} ${y-31}`,c,4.4,'none');
+  }
+}
 function drawBeams(notes,y){let group=[];function flush(){if(group.length>=2){const yb=y-46;line(group[0].x+10,yb,group[group.length-1].x+10,yb,'#f7f8ff',7)}else if(group.length===1){const n=group[0],yb=y-46;line(n.x+10,yb,n.x+34,yb+9,'#f7f8ff',6)}group=[]}notes.forEach((n,i)=>{if(!isRest(n.v)&&n.d===.5){group.push(n);let next=notes[i+1];if(!next||isRest(next.v)||next.d!==.5||Math.floor(next.t)!==Math.floor(n.t))flush()}else flush()});flush()}
 function line(x1,y1,x2,y2,c,w){let l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',c);l.setAttribute('stroke-width',w);l.setAttribute('stroke-linecap','round');notation.append(l)}
 function ellipse(cx,cy,rx,ry,stroke,fill,w,rot=0){let e=document.createElementNS('http://www.w3.org/2000/svg','ellipse');e.setAttribute('cx',cx);e.setAttribute('cy',cy);e.setAttribute('rx',rx);e.setAttribute('ry',ry);e.setAttribute('stroke',stroke);e.setAttribute('fill',fill);e.setAttribute('stroke-width',w);e.setAttribute('transform',`rotate(${rot} ${cx} ${cy})`);notation.append(e)}
